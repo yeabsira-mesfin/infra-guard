@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "infra-guard"
+version = "1.0.0"
+description = "A local Docker Compose posture scanner with expiring exceptions and SARIF output"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0.2,<7"]
+
+[project.scripts]
+infra-guard = "infra_guard.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
