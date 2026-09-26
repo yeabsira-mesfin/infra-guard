@@ -1,61 +1,79 @@
-# RoadToPortfolioWebsite 
+# InfraGuard
 
-### Sprint 1 - Take off (Week One)
-- LR0.1 - [Internet Basics](https://www.youtube.com/watch?v=7_LPdttKXPc)
-- LR0.1 - [HTTP Crash Course](https://www.youtube.com/watch?v=iYM2zFP3Zn0)
-- LR1.1 - [Git & GitHub Crash Course For Beginners](https://www.youtube.com/watch?v=SWYqp7iY_Tc)
-- LR1.2 - [Pull requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests)
-- LR1.3 - [Git Branching](https://learngitbranching.js.org/)
-- LR1.4 - [NPM Crash Course](https://www.youtube.com/watch?v=jHDhaSSKmB0)
+A Python command-line tool that reviews explicit Docker Compose settings before deployment. It produces prioritized remediation reports and CI-friendly JSON or SARIF, without running containers, connecting to infrastructure, or changing configuration.
 
-### Sprint 2 - Coding Fundamentals with Javascript (Week two)
-- LR2.1 - [Javascript Crash Course for Beginners](https://www.youtube.com/watch?v=hdI2bqOjy3c)
-- LR2.2 - [Full Javascript Course](https://www.youtube.com/watch?v=PkZNo7MFNFg)
-- LR2.3 - [Data Structures in javascript](https://www.youtube.com/watch?v=t2CEgPsws3U)
+## Try it
 
-### Sprint 3 - Frontend: Basic to (Week Three)
-- HTML
-    - LR3.1 - [Intro to HTML](https://github.com/microsoft/Web-Dev-For-Beginners/blob/main/3-terrarium/1-intro-to-html/README.md)
-- CSS
-    - LR3.2 - [Learn CSS](https://www.youtube.com/watch?v=1PnVor36_40)
-    - LR3.3 - [BoxModel](https://www.youtube.com/watch?v=rIO5326FgPE)
-    - LR3.4 - [Learn FlexBox](https://www.youtube.com/watch?v=fYq5PXgSsbE) , [Practice on Flexboxfroggy](https://flexboxfroggy.com/)
-    - LR3.5 - [Learn CSS Grid](https://www.youtube.com/watch?v=9zBsdzdE4sM)
-- CSS frameworks - Tailwind
-    - LR3.6 - [Tailwind Crash Course](https://www.youtube.com/watch?v=dFgzHOX84xQ)
+Python 3.11+:
 
-### Sprint 4 - A closer look at APIs (Week four)
-- [REST APIs](https://www.youtube.com/watch?v=Q-BpqyOT3a8)
-- [Mock a REST API with Mockaroo](https://youtu.be/H91_P_Zr2M0)
-- [Axios Crash Course](https://www.youtube.com/watch?v=6LyagkoRWYA)
-#### Additional Resources
-- [API Design Best Practices](https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-design)
-- [HTTP Status Codes](https://httpstatuses.com/)
-- [Understanding JSON](https://www.digitalocean.com/community/tutorials/understanding-json)
+```sh
+python -m venv .venv
+# Activate the environment using your shell's activation command.
+python -m pip install -e .
+python -m infra_guard examples/risky.compose.yaml
+# Exit 1 is expected: the fixture deliberately contains high-risk settings.
+python -m infra_guard examples/hardened.compose.yaml --fail-on medium
+python -m unittest discover -s tests -v
+```
 
-### Sprint 5 - Your backend API (Week Five) 
-- LR5.1 - [Express + Node + MongoDB + Mongoose Crash course](https://www.youtube.com/watch?v=-0exw-9YJBo)
-#### Additional Resources
-- [Express.js documentation](https://expressjs.com/)
-- [Node.js documentation](https://nodejs.org/en/docs/)
-- [MongoDB documentation](https://docs.mongodb.com/)
-- [Mongoose documentation](https://mongoosejs.com/docs/)
-- [RESTful API design guidelines](https://restfulapi.net/)
+The example images and digest are **static scanner fixtures**, not deployable applications.
 
-### Sprint 6 - Security (Week Six)
-- [JSON Web Token (JWT)](https://jwt.io/)
-- [Introduction to JSON Web Tokens](https://jwt.io/introduction/)
-- LR6.1 - [JWT authentication](https://www.youtube.com/watch?v=enopDSs3DRw)
+## Ten focused checks
 
-### Sprint 7 - Your Vue Front-end (Week Seven)
-- LR7.1 - [Vue JS Crash Course](https://www.youtube.com/watch?v=qZXt1Aom3Cs)
-- LR7.2 - [Full Vue 3 Tutorial](https://www.youtube.com/watch?v=YrxBCBibVo0&list=PL4cUxeGkcC9hYYGbV60Vq3IXYNfDk8At1)
-#### Resources
-- [Vue.js documentation](https://vuejs.org/)
-- [Vue CLI documentation](https://cli.vuejs.org/)
-- [Vue Router documentation](https://router.vuejs.org/)
-- [Vuex documentation](https://vuex.vuejs.org/)
-#### Video Tutorial (Starting from week 8, you should start building on your portfolio.)
-[Here](https://www.youtube.com/watch?v=qZXt1Aom3Cs) is a helpful video tutorial on getting started with Vue.js.
-[https://www.youtube.com/watch?v=qZXt1Aom3Cs](https://www.youtube.com/watch?v=qZXt1Aom3Cs)
+| Rule | Configuration concern |
+| --- | --- |
+| IG001 | Privileged containers |
+| IG002 | Missing explicit non-root user, or explicit root |
+| IG003 | Writable root filesystem |
+| IG004 | Missing or disabled explicit health check |
+| IG005 | Image reference without an immutable digest |
+| IG006 | Published ports beyond IPv4/IPv6 loopback |
+| IG007 | Shared host network or PID namespace |
+| IG008 | Docker socket mounts |
+| IG009 | Missing positive memory limits |
+| IG010 | Literal values in credential-like environment keys |
 
+Findings include severity, service, configuration field, remediation, and a stable fingerprint. Credential **values** are never copied into findings. Both short and long port/volume forms are handled. Duplicate YAML keys and unsafe YAML tags are rejected.
+
+## Reports and CI
+
+```sh
+python -m infra_guard compose.yaml --format json --output report.json
+python -m infra_guard compose.yaml --format markdown --output report.md
+python -m infra_guard compose.yaml --format sarif --output report.sarif
+```
+
+Exit codes: **0** passes the selected threshold, **1** has active findings at or above that threshold, **2** indicates invalid input or an I/O error. The default threshold is high; `--fail-on medium` includes all supported severities, and `--fail-on none` generates reports without a risk gate. Reports are written even when the risk gate fails.
+
+SARIF contains physical file locations and logical service/field locations. It does not invent source line numbers. The included workflow tests Python 3.11–3.13 and gates the hardened fixture.
+
+## Time-bound exceptions
+
+Copy the fingerprint from a JSON finding into a reviewed exceptions file:
+
+```json
+[
+  {
+    "fingerprint": "REPLACE_WITH_24_HEX_CHARS",
+    "owner": "platform-team",
+    "reason": "Temporary lab device access, tracked in internal change request",
+    "expires": "2026-12-31"
+  }
+]
+```
+
+```sh
+python -m infra_guard compose.yaml --exceptions exceptions.json --format json
+```
+
+Excepted findings remain visible. An exception is active through its expiry date in UTC; expired exceptions stop suppressing the gate automatically. Invalid or duplicate exceptions fail closed. Fingerprints include the input path, service, rule, and field, so run from a consistent repository-relative path in CI.
+
+## Evidence and limitations
+
+[Generated example report](docs/example-report.md) · [Design and supported scope](docs/design.md) · [Original learning plan](docs/original-learning-plan.md)
+
+Twelve automated tests cover all rule categories, secret redaction, alternate syntax, stable fingerprints, expiry, invalid exceptions, malformed input, YAML safety, exit codes, and SARIF structure.
+
+This is a portfolio posture checker, **not a compliance certification, vulnerability scanner, secret-discovery engine, or complete Compose validator**. It does not resolve environment files, inspect images, inspect Dockerfiles, merge multiple Compose files, or validate runtime behavior. Missing explicit controls may be inherited from an image; review each finding in context. Normalize merged Compose configuration before scanning it. Reports and exceptions may contain service names or operator-written notes, so review them before sharing.
+
+The repository replaces the Road_To_Portfolio tutorial collection. Earlier exercises, including previously tracked dependencies, remain available in Git history. The current tree focuses on the infrastructure scanner.

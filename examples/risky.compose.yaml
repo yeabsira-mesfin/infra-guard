@@ -1,0 +1,11 @@
+# Static scanner fixture. Do not deploy.
+services:
+  api:
+    image: example.invalid/api:latest
+    user: root
+    privileged: true
+    ports: ["8080:8080"]
+    network_mode: host
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    environment:
+      API_TOKEN: synthetic-not-a-real-secret
